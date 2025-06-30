@@ -237,3 +237,110 @@ body {
 .tab-bar-item:active {
     filter: brightness(0.8); /* Darken active tab item a bit more */
 }
+
+/* --- Adaptive UI Styles --- */
+
+/* Default styles are mobile-first */
+
+/* Tablet and larger (e.g., > 600px) */
+@media (min-width: 601px) {
+    .app-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Larger icons/spacing */
+        gap: 25px;
+        padding: 30px;
+        padding-bottom: 100px; /* Adjust if dock changes */
+    }
+
+    .app-icon-image {
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+    }
+
+    .app-icon-name {
+        font-size: 13px;
+    }
+
+    .dock {
+        /* Optional: could make it wider or change styling for tablets */
+        max-width: 400px;
+    }
+
+    .navigation-bar {
+        height: 50px;
+    }
+    .navigation-bar-title {
+        font-size: 18px;
+    }
+
+    .button {
+        padding: 12px 22px;
+        font-size: 18px;
+    }
+}
+
+/* Desktop and larger (e.g., > 1024px) */
+@media (min-width: 1025px) {
+    body {
+        /* Allow body to scroll if content overflows, typical for desktop */
+        overflow-y: auto;
+    }
+
+    .home-screen {
+        /* On desktop, home screen might not be full viewport height if other OS chrome exists */
+        /* For now, keep it full, but conceptualize it as part of a larger desktop area */
+        display: flex;
+        flex-direction: row; /* Prepare for sidebar */
+    }
+
+    /* Transform Tab Bar into a Sidebar */
+    .tab-bar {
+        order: -1; /* Place sidebar first in flex order */
+        flex-direction: column;
+        width: 200px; /* Sidebar width */
+        height: 100vh; /* Full height */
+        justify-content: flex-start;
+        padding: 20px 0;
+        border-top: none; /* Remove top border */
+        border-right: 1px solid #d1d1d6; /* Add right border */
+        background-color: #e8e8e8; /* Slightly different background for sidebar */
+    }
+
+    .tab-bar-item {
+        flex-direction: row; /* Icon and text side-by-side */
+        justify-content: flex-start;
+        padding: 15px 20px;
+        font-size: 14px; /* Larger font for sidebar items */
+        width: 100%;
+    }
+
+    .tab-bar-item > span { /* Assuming text is in a span */
+        margin-left: 10px; /* Space between icon (if any) and text */
+    }
+
+    .app-grid {
+        /* App grid takes remaining space next to sidebar */
+        padding-left: 20px; /* Ensure padding from sidebar */
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    /* Hide the iOS-style dock on desktop, assuming a different paradigm (e.g., taskbar) */
+    .dock {
+        display: none;
+    }
+
+    .alert {
+        /* Alerts could be larger on desktop */
+        width: 350px;
+    }
+    .alert-title {
+        font-size: 18px;
+    }
+    .alert-message {
+        font-size: 14px;
+    }
+    .alert-button {
+        font-size: 18px;
+    }
+}

@@ -1,4 +1,5 @@
-#include "gui/desktop/desktop_manager.h" // This would indirectly include all other necessary GUI headers
+#include "gui/desktop/desktop_manager.h"
+#include "cli/cli.h" // Include the new CLI header
 #include <stdio.h>
 
 // This is a simplified main function for a test harness.
@@ -6,14 +7,22 @@
 // and integrated with the kernel, scheduler, input systems, etc.
 
 int main() {
-    printf("Starting Test Harness for NeoNovaOS iOS-like UI...\n\n");
+    printf("Starting Test Harness for NeoNovaOS...\n\n");
 
     // Initialize the Desktop Manager, which should set up the theme and home screen
     // This will print the conceptual HTML-like output via the *_Render functions.
-    DesktopManager_Initialize();
+    // We can test different modes by changing the argument here.
+    DesktopManager_Initialize(UI_MODE_MOBILE); // Or UI_MODE_TABLET, UI_MODE_DESKTOP
 
     // In a real application, there would be an event loop here.
     // For this test harness, we just initialize and conceptually render once.
+    // To test mode switching:
+    // printf("\n\n--- SWITCHING TO DESKTOP MODE ---\n\n");
+    // DesktopManager_SetCurrentUIMode(UI_MODE_DESKTOP);
+    // // DesktopManager_NotifyUIModeChanged(); // Already called by SetCurrentUIMode if mode changes
+
+    // printf("\n\n--- SWITCHING TO MOBILE MODE ---\n\n");
+    // DesktopManager_SetCurrentUIMode(UI_MODE_MOBILE);
 
     // Example of how other widgets might be used and rendered (conceptually)
     // This part is commented out because DesktopManager_Initialize already renders the home screen.
@@ -39,6 +48,21 @@ int main() {
     }
     printf("--- Conceptual TabBar Render End ---\n");
     */
+
+    // --- Initialize and Test CLI ---
+    printf("\n\n--- CLI Initialization and Test ---\n");
+    CLI_Initialize(); // Initialize CLI and register commands
+
+    // Simulate some CLI inputs
+    CLI_ProcessInput("help");
+    CLI_ProcessInput("echo Hello from the CLI!");
+    CLI_ProcessInput("list_apps");
+    CLI_ProcessInput("start_app com.neonovos.messages"); // Try to start one of the sample apps
+    CLI_ProcessInput("start_app com.nonexistent.app");   // Try to start a non-existent app
+    CLI_ProcessInput("unknown_command with args");
+    CLI_ProcessInput(""); // Empty input
+    CLI_ProcessInput("echo"); // Echo with no args
+    printf("--- End CLI Test ---\n\n");
 
     // Shutdown the Desktop Manager to free resources
     DesktopManager_Shutdown();
