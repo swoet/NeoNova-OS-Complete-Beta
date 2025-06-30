@@ -39,12 +39,77 @@ body {
 .navigation-bar {
     background-color: #f8f8f8; /* Light, slightly translucent background */
     border-bottom: 1px solid #d1d1d6;
-    padding: 10px;
-    text-align: center;
+    padding: 0 10px; /* Adjusted padding for flex items */
     height: 44px; /* Standard iOS nav bar height (excluding status bar) */
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Distributes space: left, center (title), right */
 }
 
+.nav-actions-left, .nav-actions-right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; /* Prevent shrinking if title is long */
+}
+
+/* Give title room to expand but also allow it to shrink if actions are many/wide */
 .navigation-bar-title {
+    flex-grow: 1;
+    text-align: center; /* Center title */
+    font-size: 17px;
+    font-weight: 600;
+    color: #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 50px; /* Ensure title area doesn't collapse entirely */
+    padding: 0 5px; /* Some padding around title if action items are close */
+}
+
+.nav-action-item {
+    background-color: transparent;
+    border: none;
+    color: #007aff; /* iOS blue for action text/buttons */
+    padding: 5px 10px;
+    font-size: 17px; /* Match iOS standard button text size */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.nav-action-item:active {
+    opacity: 0.7; /* Simple active state */
+    /* filter: brightness(0.9) was used elsewhere, could be an option too */
+}
+
+.nav-action-icon {
+    width: 22px;  /* Adjust as needed */
+    height: 22px; /* Adjust as needed */
+    /* Add margin if text and icon are combined in one item, e.g., margin-right: 5px; */
+}
+
+/* Adjustments for desktop mode where nav bar might be taller */
+@media (min-width: 601px) { /* Tablet and larger */
+    .navigation-bar {
+        height: 50px; /* From previous adaptive styles */
+        padding: 0 15px;
+    }
+    .navigation-bar-title {
+        font-size: 18px; /* From previous adaptive styles */
+    }
+    .nav-action-item {
+        font-size: 18px;
+        padding: 5px 12px;
+    }
+}
+
+/* Desktop specific adjustments might not be needed if tablet styles are okay,
+   but if sidebar is present, the main content's nav-bar might need different styling.
+   For now, assume it's similar or handled by overall layout. */
+
+
+/* Original title styling, if not using flexbox for centering */
+/* .navigation-bar-title {
     font-size: 17px;
     font-weight: 600;
     color: #000;

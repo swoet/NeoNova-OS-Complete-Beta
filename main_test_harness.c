@@ -1,6 +1,29 @@
 #include "gui/desktop/desktop_manager.h"
 #include "cli/cli.h" // Include the new CLI header
+#include "gui/widgets/navigation_bar.h" // For NavigationBar testing
 #include <stdio.h>
+
+// --- NavigationBar Test Callbacks ---
+void NavCallback_Generic(NavigationBar* bar, const char* action_id) {
+    if (bar && action_id) {
+        // In a real app, you might use bar->user_data or switch on action_id
+        CLI_DisplayOutput("CLI_INFO: NavigationBar action '%s' triggered for bar titled '%s'.",
+                          action_id, bar->title ? bar->title : "Untitled");
+    } else {
+        CLI_DisplayOutput("CLI_INFO: Generic NavigationBar action triggered (bar or action_id missing).");
+    }
+}
+
+void NavCallback_Back(NavigationBar* bar, const char* action_id) {
+    CLI_DisplayOutput("CLI_INFO: 'Back' action (%s) triggered on bar '%s'. Go back now!",
+                      action_id, bar->title ? bar->title : "Untitled");
+}
+
+void NavCallback_Save(NavigationBar* bar, const char* action_id) {
+    CLI_DisplayOutput("CLI_INFO: 'Save' action (%s) triggered on bar '%s'. Saving data...",
+                      action_id, bar->title ? bar->title : "Untitled");
+}
+
 
 // This is a simplified main function for a test harness.
 // In a real OS, GUI initialization and the main loop would be much more complex
@@ -83,6 +106,51 @@ int main() {
     CLI_ProcessInput(""); // Empty input
     CLI_ProcessInput("echo"); // Echo with no args
     printf("--- End CLI Test ---\n\n");
+
+    // --- Test Enhanced NavigationBar ---
+    printf("\n--- Enhanced NavigationBar Test ---\n");
+    NavigationBar* myNavBar = NavigationBar_Create("My App Page");
+    if (myNavBar) {
+        // Add left items
+        NavigationBar_AddLeftItem(myNavBar,
+            NavigationBarActionItem_CreateText("back", "Back", NavCallback_Back));
+        NavigationBar_AddLeftItem(myNavBar,
+            NavigationBarActionItem_CreateIcon("menu", "gui/icons/menu.png", NavCallback_Generic)); // Conceptual icon
+
+        // Add right items
+        NavigationBar_AddRightItem(myNavBar,
+            NavigationBarActionItem_CreateText("save", "Save", NavCallback_Save));
+        NavigationBar_AddRightItem(myNavBar,
+            NavigationBarActionItem_CreateText("help", "Help", NavCallback_Generic));
+
+        // Try adding too many (should fail gracefully and print error)
+        NavigationBar_AddRightItem(myNavBar,
+            NavigationBarActionItem_CreateText("extra", "Extra", NavCallback_Generic));
+
+
+        // Set some user data (optional)
+        // char* navContext = "User Profile Page";
+        // NavigationBar_SetUserData(myNavBar, navContext); // Assuming SetUserData is implemented
+
+        NavigationBar_Render(myNavBar);
+
+        // Simulate a callback invocation (for testing the callback function itself)
+        // In a real GUI, this would be triggered by a click.
+        if (myNavBar->left_item_count > 0 && myNavBar->left_items[0].callback) {
+            CLI_DisplayOutput("Simulating click on first left item ('%s')...", myNavBar->left_items[0].action_id);
+            myNavBar->left_items[0].callback(myNavBar, myNavBar->left_items[0].action_id);
+        }
+        if (myNavBar->right_item_count > 0 && myNavBar->right_items[0].callback) {
+             CLI_DisplayOutput("Simulating click on first right item ('%s')...", myNavBar->right_items[0].action_id);
+            myNavBar->right_items[0].callback(myNavBar, myNavBar->right_items[0].action_id);
+        }
+
+        NavigationBar_Destroy(myNavBar);
+    } else {
+        CLI_DisplayOutput("CLI_ERROR: Failed to create myNavBar.");
+    }
+    printf("--- End NavigationBar Test ---\n\n");
+
 
     // Shutdown the Desktop Manager to free resources
     DesktopManager_Shutdown();
