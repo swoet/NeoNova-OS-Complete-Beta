@@ -119,3 +119,127 @@ void AppManifest_Print(const AppManifest* manifest) {
     }
     printf("------------------------------------\n");
 }
+
+// Helper to convert permission string to AppPermission enum
+static AppPermission StringToAppPermission(const char* perm_str) {
+    if (!perm_str) return PERMISSION_NONE;
+    if (strcmp(perm_str, "FS_READ") == 0) return PERMISSION_FILESYSTEM_READ;
+    if (strcmp(perm_str, "FS_WRITE") == 0) return PERMISSION_FILESYSTEM_WRITE;
+    if (strcmp(perm_str, "NET") == 0) return PERMISSION_NETWORK_ACCESS;
+    if (strcmp(perm_str, "CAM") == 0) return PERMISSION_DEVICE_CAMERA;
+    if (strcmp(perm_str, "MIC") == 0) return PERMISSION_DEVICE_MICROPHONE;
+    // Add other permission strings here
+    fprintf(stderr, "Warning: Unknown permission string '%s'\n", perm_str);
+    return PERMISSION_NONE;
+}
+
+AppManifest* AppManifest_ParseFromString(const char* manifest_string) {
+    if (!manifest_string) return NULL;
+
+    char* str_copy = StrDup_Safe(manifest_string); // Work on a copy
+    if (!str_copy) return NULL;
+
+    // Temp variables to hold parsed values before creating the manifest
+    char* temp_id = NULL;
+    char* temp_name = NULL;
+    char* temp_version = NULL;
+    char* temp_entry = NULL;
+    char* temp_icon = NULL;
+
+    AppPermission temp_perms[MAX_PERMISSIONS];
+    int temp_perm_count = 0;
+
+    MetadataEntry temp_meta[MAX_METADATA_KEY_VALUE_PAIRS];
+    int temp_meta_count = 0;
+
+    char* token = strtok(str_copy, ";"); // Tokenize by semicolon for key-value pairs
+    while (token != NULL) {
+        char* value = strchr(token, ':');
+        if (value) {
+            *value = '\0'; // Null-terminate the key
+            value++;       // Move pointer to the start of the value
+
+            if (strcmp(token, "id") == 0) temp_id = value;
+            else if (strcmp(token, "name") == 0) temp_name = value;
+            else if (strcmp(token, "version") == 0) temp_version = value;
+            else if (strcmp(token, "entry") == 0) temp_entry = value;
+            else if (strcmp(token, "icon") == 0) temp_icon = value;
+            else if (strcmp(token, "perms") == 0) {
+                // Parse comma-separated permissions
+                char* perm_token = strtok(value, ",");
+                while (perm_token != NULL && temp_perm_count < MAX_PERMISSIONS) {
+                    AppPermission p = StringToAppPermission(perm_token);
+                    if (p != PERMISSION_NONE) { // Only add valid known permissions
+                        temp_perms[temp_perm_count++] = p;
+                    }
+                    perm_token = strtok(NULL, ",");
+                }
+            } else if (strcmp(token, "meta") == 0) {
+                // Parse comma-separated metadata key=value pairs
+                char* meta_pair_token = strtok(value, ",");
+                while (meta_pair_token != NULL && temp_meta_count < MAX_METADATA_KEY_VALUE_PAIRS) {
+                    char* meta_value = strchr(meta_pair_token, '=');
+                    if (meta_value) {
+                        *meta_value = '\0'; // Null-terminate meta key
+                        meta_value++;       // Move to meta value
+                        temp_meta[temp_meta_count].key = StrDup_Safe(meta_pair_token); // strdup needed as original string is modified
+                        temp_meta[temp_meta_count].value = StrDup_Safe(meta_value);
+                        if (temp_meta[temp_meta_count].key && temp_meta[temp_meta_count].value) {
+                           temp_meta_count++;
+                        } else { // strdup failed for key or value
+                            if(temp_meta[temp_meta_count].key) free(temp_meta[temp_meta_count].key);
+                            if(temp_meta[temp_meta_count].value) free(temp_meta[temp_meta_count].value);
+                        }
+                    }
+                    meta_pair_token = strtok(NULL, ",");
+                }
+            }
+        }
+        token = strtok(NULL, ";");
+    }
+
+    // Basic validation: check if essential fields were found
+    if (!temp_id || !temp_name || !temp_entry) {
+        fprintf(stderr, "AppManifest_ParseFromString: Error - essential fields (id, name, entry) not found in string.\n");
+        // Free any strduped metadata parts before returning NULL
+        for(int i=0; i < temp_meta_count; ++i) {
+            if(temp_meta[i].key) free(temp_meta[i].key);
+            if(temp_meta[i].value) free(temp_meta[i].value);
+        }
+        free(str_copy);
+        return NULL;
+    }
+
+    // Create the manifest using the parsed (but still pointing into str_copy for non-meta) values
+    AppManifest* manifest = AppManifest_Create(temp_id, temp_name, temp_version, temp_entry, temp_icon);
+    if (!manifest) {
+        for(int i=0; i < temp_meta_count; ++i) { // Free any strduped metadata if manifest creation fails
+            if(temp_meta[i].key) free(temp_meta[i].key);
+            if(temp_meta[i].value) free(temp_meta[i].value);
+        }
+        free(str_copy);
+        return NULL;
+    }
+
+    // Copy permissions
+    for (int i = 0; i < temp_perm_count; ++i) {
+        AppManifest_AddPermission(manifest, temp_perms[i]);
+    }
+
+    // Copy metadata (which were already strduped)
+    for (int i = 0; i < temp_meta_count; ++i) {
+        // AppManifest_AddMetadata will strdup again if we pass temp_meta[i].key, temp_meta[i].value
+        // So we directly assign the already duplicated strings and manage their lifetime with AppManifest_Destroy
+        if (manifest->metadata_count < MAX_METADATA_KEY_VALUE_PAIRS) {
+            manifest->metadata[manifest->metadata_count].key = temp_meta[i].key; // Transfer ownership
+            manifest->metadata[manifest->metadata_count].value = temp_meta[i].value; // Transfer ownership
+            manifest->metadata_count++;
+        } else { // Should not happen if MAX_METADATA_KEY_VALUE_PAIRS is consistent
+            free(temp_meta[i].key); // Free if cannot be added
+            free(temp_meta[i].value);
+        }
+    }
+
+    free(str_copy); // Free the initial duplicated manifest string
+    return manifest;
+}

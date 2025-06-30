@@ -191,3 +191,59 @@ AppInstance* AppManager_FindAppByID(const char* app_id) {
     }
     return NULL; // Not found
 }
+
+int AppManager_UnloadApp(const char* app_id) {
+    if (!app_id) {
+        fprintf(stderr, "AppManager Error: Cannot unload app with null ID.\n");
+        return -1;
+    }
+
+    int found_index = -1;
+    AppInstance* app_to_unload = NULL;
+
+    for (int i = 0; i < G_loaded_apps_count; ++i) {
+        if (G_loaded_apps[i] && G_loaded_apps[i]->manifest && G_loaded_apps[i]->manifest->app_id &&
+            strcmp(G_loaded_apps[i]->manifest->app_id, app_id) == 0) {
+            app_to_unload = G_loaded_apps[i];
+            found_index = i;
+            break;
+        }
+    }
+
+    if (!app_to_unload) {
+        fprintf(stderr, "AppManager Info: App with ID '%s' not found for unloading.\n", app_id);
+        return -1; // Or 0 if "not found" isn't an error for unload
+    }
+
+    printf("AppManager: Unloading app '%s' (%s)...\n", AppInstance_GetName(app_to_unload), app_id);
+
+    // Stop the app if it's running
+    if (app_to_unload->current_state == APP_STATE_RUNNING) {
+        AppManager_StopApp(app_to_unload); // This will change its state to STOPPED
+    }
+
+    // Destroy the manifest (owned by AppInstance which is owned by AppManager)
+    AppManifest_Destroy(app_to_unload->manifest);
+    app_to_unload->manifest = NULL;
+
+    // Free the AppInstance itself
+    free(app_to_unload);
+    G_loaded_apps[found_index] = NULL; // Mark as NULL in the array
+
+    // Compact the array: shift elements down to fill the gap
+    if (found_index < G_loaded_apps_count - 1) {
+        // memmove is safer for overlapping regions if we were shifting more complex structs
+        // For an array of pointers, a simple loop is fine.
+        for (int i = found_index; i < G_loaded_apps_count - 1; ++i) {
+            G_loaded_apps[i] = G_loaded_apps[i + 1];
+        }
+    }
+    G_loaded_apps_count--;
+    if (G_loaded_apps_count > 0 || found_index == G_loaded_apps_count ) { // if it was not the last element or array is now empty
+         G_loaded_apps[G_loaded_apps_count] = NULL; // Null out the new last potentially duplicated pointer
+    }
+
+
+    printf("AppManager: App '%s' unloaded successfully.\n", app_id);
+    return 0;
+}

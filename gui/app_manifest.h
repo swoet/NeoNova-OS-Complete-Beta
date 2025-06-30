@@ -48,4 +48,9 @@ void AppManifest_Destroy(AppManifest* manifest);
 // Helper to print manifest details (for debugging/logging)
 void AppManifest_Print(const AppManifest* manifest);
 
+// Parse an AppManifest from a specially formatted string.
+// The caller is responsible for freeing the returned AppManifest using AppManifest_Destroy.
+// Returns NULL on parsing error or memory allocation failure.
+AppManifest* AppManifest_ParseFromString(const char* manifest_string);
+
 #endif // APP_MANIFEST_H

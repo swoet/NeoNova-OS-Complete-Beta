@@ -53,6 +53,49 @@ int cmd_help_handler(int argc, char* argv[]) {
     return 0;
 }
 
+int cmd_unload_app_handler(int argc, char* argv[]) {
+    if (argc < 2) {
+        CLI_DisplayError("Usage: unload_app <app_id>");
+        return 1;
+    }
+    const char* app_id_to_unload = argv[1];
+    if (AppManager_UnloadApp(app_id_to_unload) == 0) {
+        CLI_DisplayOutput("App '%s' unloaded successfully.", app_id_to_unload);
+    } else {
+        CLI_DisplayError("Failed to unload app '%s' (may not exist or other error).", app_id_to_unload);
+    }
+    return 0;
+}
+
+int cmd_load_app_string_handler(int argc, char* argv[]) {
+    if (argc < 2) {
+        CLI_DisplayError("Usage: load_app_string \"<manifest_string>\"");
+        CLI_DisplayError("Example: load_app_string \"id:com.test.new;name:NewApp;entry:new_exec\"");
+        return 1;
+    }
+    // For simplicity, assume the manifest string is passed as a single argument,
+    // potentially quoted if it contains spaces (though our simple format doesn't).
+    // A more robust CLI would handle multi-word strings better.
+    const char* manifest_string = argv[1];
+    CLI_DisplayOutput("Attempting to parse and load: %s", manifest_string);
+    AppManifest* parsed_manifest = AppManifest_ParseFromString(manifest_string);
+    if (parsed_manifest) {
+        AppInstance* instance = AppManager_LoadAppFromManifest(parsed_manifest);
+        if (instance && instance->manifest == parsed_manifest) { // Successfully loaded as new
+            CLI_DisplayOutput("Successfully loaded new app: %s", parsed_manifest->app_id);
+        } else if (instance && instance->manifest != parsed_manifest) { // Duplicate
+            CLI_DisplayError("App ID '%s' already exists. New manifest not loaded.", parsed_manifest->app_id);
+            AppManifest_Destroy(parsed_manifest); // Clean up the newly parsed one
+        } else { // Load failed for other reasons
+            CLI_DisplayError("AppManager failed to load parsed manifest for ID: %s", parsed_manifest->app_id);
+            AppManifest_Destroy(parsed_manifest); // Clean up
+        }
+    } else {
+        CLI_DisplayError("Failed to parse manifest string.");
+    }
+    return 0;
+}
+
 int cmd_echo_handler(int argc, char* argv[]) {
     if (argc < 2) {
         CLI_DisplayOutput(""); // Echo nothing if no args
@@ -207,6 +250,12 @@ void CLI_Initialize() {
 
     CLI_Command app_info_cmd = {"app_info", "Display detailed information about an application by its ID.", cmd_app_info_handler};
     CLI_RegisterCommand(app_info_cmd);
+
+    CLI_Command unload_app_cmd = {"unload_app", "Unload an application by its ID.", cmd_unload_app_handler};
+    CLI_RegisterCommand(unload_app_cmd);
+
+    CLI_Command load_app_str_cmd = {"load_app_str", "Load an app from a manifest string. Usage: load_app_str \"str\"", cmd_load_app_string_handler};
+    CLI_RegisterCommand(load_app_str_cmd);
 
     CLI_DisplayOutput("CLI Initialized. Type 'help' for commands.");
 }

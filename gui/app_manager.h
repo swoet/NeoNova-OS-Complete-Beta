@@ -62,5 +62,11 @@ const char* AppInstance_GetAppID(const AppInstance* app);
 // Returns a pointer to the AppInstance or NULL if not found.
 AppInstance* AppManager_FindAppByID(const char* app_id);
 
+// Unload an application by its ID.
+// This will stop the app if it's running, then remove it from the loaded list,
+// freeing its manifest and instance data.
+// Returns 0 on success, -1 if app not found or error.
+int AppManager_UnloadApp(const char* app_id);
+
 
 #endif // APP_MANAGER_H

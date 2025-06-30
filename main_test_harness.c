@@ -102,6 +102,19 @@ int main() {
     CLI_DisplayOutput("\n--- Testing list_apps again ---");
     CLI_ProcessInput("list_apps");
 
+    // Test dynamic loading and unloading via CLI
+    CLI_DisplayOutput("\n--- Testing dynamic app load/unload via CLI ---");
+    CLI_ProcessInput("load_app_str \"id:com.test.dynamic;name:DynamicApp;version:0.1;entry:dyn_exec;icon:dyn.png;perms:NET\"");
+    CLI_ProcessInput("list_apps"); // Should show DynamicApp
+    CLI_ProcessInput("app_info com.test.dynamic");
+    CLI_ProcessInput("load_app_str \"id:com.neonovos.messages;name:MessagesDup;version:9.9;entry:dup_exec\"" ); // Test duplicate load via string
+    CLI_ProcessInput("list_apps"); // Should still show original messages, not MessagesDup
+    CLI_ProcessInput("unload_app com.test.dynamic");
+    CLI_ProcessInput("list_apps"); // Should not show DynamicApp
+    CLI_ProcessInput("unload_app com.test.dynamic"); // Try unloading already unloaded
+    CLI_ProcessInput("unload_app com.nonexistent.app.two"); // Try unloading non-existent
+
+
     CLI_ProcessInput("unknown_command with args");
     CLI_ProcessInput(""); // Empty input
     CLI_ProcessInput("echo"); // Echo with no args

@@ -62,29 +62,38 @@ void DesktopManager_Initialize(UIMode initial_mode) {
     IOSHomeScreen_SetWallpaper(current_home_screen, "gui/assets/wallpapers/default_ios_wallpaper.png");
     printf("DesktopManager: Default wallpaper set.\n");
 
-    // 4. Create and load sample applications into AppManager
-    AppManifest* app1_manifest = AppManifest_Create("com.neonovos.messages", "Messages", "1.0", "messages_exec", "gui/assets/icons/messages.png");
-    if (app1_manifest) {
-        AppManifest_AddPermission(app1_manifest, PERMISSION_NETWORK_ACCESS);
-        AppManager_LoadAppFromManifest(app1_manifest); // AppManager takes ownership
-    }
-    AppManifest* app2_manifest = AppManifest_Create("com.neonovos.photos", "Photos", "1.1", "photos_exec", "gui/assets/icons/photos.png");
-    if (app2_manifest) {
-        AppManifest_AddPermission(app2_manifest, PERMISSION_FILESYSTEM_READ);
-        // To mark as a dock app (conceptual - AppManager/HomeScreen needs to use this)
-        // AppManifest_AddMetadata(app2_manifest, "isDockApp", "true");
-        AppManager_LoadAppFromManifest(app2_manifest);
-    }
-    AppManifest* app3_manifest = AppManifest_Create("com.neonovos.settings", "Settings", "1.0", "settings_exec", "gui/assets/icons/settings.png");
-    AppManager_LoadAppFromManifest(app3_manifest); // AppManager takes ownership even if NULL check is skipped for brevity
+    // 4. Create and load sample applications into AppManager using string parsing
+    const char* app_strings[] = {
+        "id:com.neonovos.messages;name:Messages;version:1.0;entry:msg_exec;icon:gui/assets/icons/messages.png;perms:NET,FS_READ",
+        "id:com.neonovos.photos;name:Photos;version:1.1;entry:photo_exec;icon:gui/assets/icons/photos.png;perms:FS_READ;meta:quality=high",
+        "id:com.neonovos.settings;name:Settings;version:1.0;entry:settings_exec;icon:gui/assets/icons/settings.png",
+        "id:com.neonovos.phone;name:Phone;version:1.2;entry:phone_exec;icon:gui/assets/icons/phone.png;perms:NET,MIC;meta:isDockApp=true",
+        // Duplicate ID to test AppManager's duplicate handling
+        "id:com.neonovos.messages;name:MessagesClone;version:1.0.clone;entry:clone_exec;icon:gui/assets/icons/clone.png"
+    };
+    int num_app_strings = sizeof(app_strings) / sizeof(app_strings[0]);
 
-    // Example of a "dock" app - this distinction needs to be handled by AppManager or HomeScreen rendering logic.
-    AppManifest* dock_app1_manifest = AppManifest_Create("com.neonovos.phone", "Phone", "1.2", "phone_exec", "gui/assets/icons/phone.png");
-    if (dock_app1_manifest) {
-        // AppManifest_AddMetadata(dock_app1_manifest, "isDockApp", "true");
-        AppManager_LoadAppFromManifest(dock_app1_manifest);
+    for (int i = 0; i < num_app_strings; ++i) {
+        AppManifest* parsed_manifest = AppManifest_ParseFromString(app_strings[i]);
+        if (parsed_manifest) {
+            AppInstance* existing_instance = AppManager_LoadAppFromManifest(parsed_manifest);
+            if (existing_instance && existing_instance->manifest != parsed_manifest) {
+                // This means LoadAppFromManifest returned an *existing* instance due to duplicate ID.
+                // The `parsed_manifest` was not taken by AppManager, so we must destroy it.
+                printf("DesktopManager: App ID '%s' duplicated. New manifest not loaded, destroying parsed duplicate.\n", parsed_manifest->app_id);
+                AppManifest_Destroy(parsed_manifest);
+            } else if (!existing_instance) {
+                // LoadAppFromManifest failed for a reason other than duplicate (e.g., app manager full)
+                // and it didn't take ownership of parsed_manifest.
+                printf("DesktopManager: Failed to load app from manifest string: %s. Destroying parsed manifest.\n", app_strings[i]);
+                AppManifest_Destroy(parsed_manifest);
+            }
+            // If existing_instance->manifest == parsed_manifest, then AppManager took ownership (new app loaded).
+        } else {
+            printf("DesktopManager: Failed to parse manifest string: %s\n", app_strings[i]);
+        }
     }
-    printf("DesktopManager: Sample apps loaded into AppManager.\n");
+    printf("DesktopManager: Sample apps processed for AppManager.\n");
 
     // 5. Conceptual: Initialize other global UI elements based on mode
     // For example, if in Desktop mode, we might create a persistent sidebar TabBar here.
