@@ -180,3 +180,14 @@ const char* AppInstance_GetAppID(const AppInstance* app) {
     if (!app || !app->manifest) return "unknown.app.id";
     return app->manifest->app_id ? app->manifest->app_id : "unnamed.app.id";
 }
+
+AppInstance* AppManager_FindAppByID(const char* app_id) {
+    if (!app_id) return NULL;
+    for (int i = 0; i < G_loaded_apps_count; ++i) {
+        if (G_loaded_apps[i] && G_loaded_apps[i]->manifest && G_loaded_apps[i]->manifest->app_id &&
+            strcmp(G_loaded_apps[i]->manifest->app_id, app_id) == 0) {
+            return G_loaded_apps[i];
+        }
+    }
+    return NULL; // Not found
+}

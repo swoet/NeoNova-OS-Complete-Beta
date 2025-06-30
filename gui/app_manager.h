@@ -58,5 +58,9 @@ const char* AppInstance_GetName(const AppInstance* app);
 const char* AppInstance_GetIconPath(const AppInstance* app);
 const char* AppInstance_GetAppID(const AppInstance* app);
 
+// Find a loaded application instance by its ID.
+// Returns a pointer to the AppInstance or NULL if not found.
+AppInstance* AppManager_FindAppByID(const char* app_id);
+
 
 #endif // APP_MANAGER_H

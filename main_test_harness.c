@@ -59,6 +59,26 @@ int main() {
     CLI_ProcessInput("list_apps");
     CLI_ProcessInput("start_app com.neonovos.messages"); // Try to start one of the sample apps
     CLI_ProcessInput("start_app com.nonexistent.app");   // Try to start a non-existent app
+
+    // Test app_info
+    CLI_DisplayOutput("\n--- Testing app_info ---");
+    CLI_ProcessInput("app_info com.neonovos.messages");    // Existing app
+    CLI_ProcessInput("app_info com.neonovos.photos");      // Another existing app
+    CLI_ProcessInput("app_info com.nonexistent.app"); // Non-existent app
+    CLI_ProcessInput("app_info");                     // Missing argument
+
+    // Test stop_app
+    CLI_DisplayOutput("\n--- Testing stop_app ---");
+    CLI_ProcessInput("stop_app com.neonovos.messages");     // Stop the (conceptually) started app
+    CLI_ProcessInput("stop_app com.neonovos.messages");     // Try stopping it again
+    CLI_ProcessInput("stop_app com.neonovos.photos");       // Stop an app that wasn't explicitly started (should be fine)
+    CLI_ProcessInput("stop_app com.nonexistent.app");  // Non-existent app
+    CLI_ProcessInput("stop_app");                      // Missing argument
+
+    // Test list_apps again to see if state changes are reflected (conceptually)
+    CLI_DisplayOutput("\n--- Testing list_apps again ---");
+    CLI_ProcessInput("list_apps");
+
     CLI_ProcessInput("unknown_command with args");
     CLI_ProcessInput(""); // Empty input
     CLI_ProcessInput("echo"); // Echo with no args

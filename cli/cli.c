@@ -31,6 +31,19 @@ void CLI_DisplayError(const char* format, ...) {
 }
 
 
+// Helper to convert AppPermission enum to string
+const char* AppPermissionToString(AppPermission perm) {
+    switch (perm) {
+        case PERMISSION_NONE: return "None";
+        case PERMISSION_FILESYSTEM_READ: return "Filesystem Read";
+        case PERMISSION_FILESYSTEM_WRITE: return "Filesystem Write";
+        case PERMISSION_NETWORK_ACCESS: return "Network Access";
+        case PERMISSION_DEVICE_CAMERA: return "Device Camera";
+        case PERMISSION_DEVICE_MICROPHONE: return "Device Microphone";
+        default: return "Unknown Permission";
+    }
+}
+
 // --- Command Handlers ---
 int cmd_help_handler(int argc, char* argv[]) {
     CLI_DisplayOutput("Available commands:");
@@ -87,16 +100,7 @@ int cmd_start_app_handler(int argc, char* argv[]) {
         return 1;
     }
     const char* app_id_to_start = argv[1];
-    AppInstance* loaded_apps[MAX_LOADED_APPS];
-    int app_count = AppManager_GetLoadedApps(loaded_apps, MAX_LOADED_APPS);
-    AppInstance* app_to_start = NULL;
-
-    for (int i = 0; i < app_count; ++i) {
-        if (strcmp(AppInstance_GetAppID(loaded_apps[i]), app_id_to_start) == 0) {
-            app_to_start = loaded_apps[i];
-            break;
-        }
-    }
+    AppInstance* app_to_start = AppManager_FindAppByID(app_id_to_start);
 
     if (app_to_start) {
         if (AppManager_StartApp(app_to_start) == 0) {
@@ -106,6 +110,76 @@ int cmd_start_app_handler(int argc, char* argv[]) {
         }
     } else {
         CLI_DisplayError("App with ID '%s' not found.", app_id_to_start);
+    }
+    return 0;
+}
+
+int cmd_stop_app_handler(int argc, char* argv[]) {
+    if (argc < 2) {
+        CLI_DisplayError("Usage: stop_app <app_id>");
+        return 1;
+    }
+    const char* app_id_to_stop = argv[1];
+    AppInstance* app_to_stop = AppManager_FindAppByID(app_id_to_stop);
+
+    if (app_to_stop) {
+        // AppManager_StopApp is designed to be idempotent (safe to call on already stopped app)
+        if (AppManager_StopApp(app_to_stop) == 0) {
+            CLI_DisplayOutput("App '%s' stopped (or was not running).", app_id_to_stop);
+        } else {
+            // This path might not be easily reachable if StopApp is simple
+            CLI_DisplayError("Failed to issue stop for app '%s'.", app_id_to_stop);
+        }
+    } else {
+        CLI_DisplayError("App with ID '%s' not found.", app_id_to_stop);
+    }
+    return 0;
+}
+
+int cmd_app_info_handler(int argc, char* argv[]) {
+    if (argc < 2) {
+        CLI_DisplayError("Usage: app_info <app_id>");
+        return 1;
+    }
+    const char* app_id_to_info = argv[1];
+    AppInstance* app_to_info = AppManager_FindAppByID(app_id_to_info);
+
+    if (app_to_info) {
+        const AppManifest* manifest = AppManager_GetManifest(app_to_info);
+        if (manifest) {
+            CLI_DisplayOutput("App Information:");
+            CLI_DisplayOutput("  ID: %s", manifest->app_id ? manifest->app_id : "N/A");
+            CLI_DisplayOutput("  Name: %s", manifest->app_name ? manifest->app_name : "N/A");
+            CLI_DisplayOutput("  Version: %s", manifest->version ? manifest->version : "N/A");
+            CLI_DisplayOutput("  Entry Point: %s", manifest->entry_point ? manifest->entry_point : "N/A");
+            CLI_DisplayOutput("  Icon Path: %s", manifest->icon_path ? manifest->icon_path : "N/A");
+
+            CLI_DisplayOutput("  Permissions (%d):", manifest->permission_count);
+            if (manifest->permission_count > 0) {
+                for (int i = 0; i < manifest->permission_count; ++i) {
+                    CLI_DisplayOutput("    - %s (Code: %d)",
+                                      AppPermissionToString(manifest->required_permissions[i]),
+                                      manifest->required_permissions[i]);
+                }
+            } else {
+                CLI_DisplayOutput("    (No specific permissions requested)");
+            }
+
+            CLI_DisplayOutput("  Metadata (%d):", manifest->metadata_count);
+            if (manifest->metadata_count > 0) {
+                for (int i = 0; i < manifest->metadata_count; ++i) {
+                    CLI_DisplayOutput("    - %s: %s",
+                                   manifest->metadata[i].key ? manifest->metadata[i].key : "N/A",
+                                   manifest->metadata[i].value ? manifest->metadata[i].value : "N/A");
+                }
+            } else {
+                CLI_DisplayOutput("    (No metadata)");
+            }
+        } else {
+            CLI_DisplayError("Could not retrieve manifest for app '%s'.", app_id_to_info);
+        }
+    } else {
+        CLI_DisplayError("App with ID '%s' not found.", app_id_to_info);
     }
     return 0;
 }
@@ -127,6 +201,12 @@ void CLI_Initialize() {
 
     CLI_Command start_app_cmd = {"start_app", "Start an application by its ID.", cmd_start_app_handler};
     CLI_RegisterCommand(start_app_cmd);
+
+    CLI_Command stop_app_cmd = {"stop_app", "Stop a running application by its ID.", cmd_stop_app_handler};
+    CLI_RegisterCommand(stop_app_cmd);
+
+    CLI_Command app_info_cmd = {"app_info", "Display detailed information about an application by its ID.", cmd_app_info_handler};
+    CLI_RegisterCommand(app_info_cmd);
 
     CLI_DisplayOutput("CLI Initialized. Type 'help' for commands.");
 }
