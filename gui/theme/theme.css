@@ -1,1 +1,52 @@
 /* NeoNovaOS unique GUI theme */
+
+body {
+    background: linear-gradient(135deg, #232526 0%, #414345 100%);
+    color: #e0e0e0;
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.window {
+    background: rgba(40, 44, 52, 0.95);
+    border-radius: 10px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.4);
+    border: 1px solid #3a3f4b;
+    padding: 16px;
+    margin: 16px;
+    transition: box-shadow 0.2s;
+}
+
+.window:focus {
+    box-shadow: 0 0 0 2px #00bcd4, 0 4px 32px rgba(0,0,0,0.4);
+}
+
+.menu {
+    background: #292d36;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.3);
+    padding: 12px 24px;
+    color: #fff;
+    font-size: 1.1em;
+}
+
+desktop {
+    background: linear-gradient(120deg, #232526 0%, #3a3f4b 100%);
+    min-height: 100vh;
+}
+
+.button {
+    background: #00bcd4;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 18px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.button:hover {
+    background: #0097a7;
+}
